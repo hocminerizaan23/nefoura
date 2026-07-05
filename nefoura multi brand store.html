@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEFOURA | Perinthalmanna</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;600&family=Playfair+Display:ital,wght@0,600;0,800;1,700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --gold: #d4af37;
+  --bg: #030303;
+  --glass: rgba(255, 255, 255, 0.03);
+}
+*{ margin:0; padding:0; box-sizing:border-box; scroll-behavior:smooth; }
+body, html { cursor: none; background: var(--bg); color: white; font-family: 'Poppins', sans-serif; overflow-x: hidden; }
+
+/* --- CURSOR & SPARKLE SYSTEM --- */
+#cursor { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 10001; transform: translate(-50%, -50%); }
+#cursor-aura { width: 45px; height: 45px; border: 1.5px solid var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); }
+.sparkle { position: fixed; width: 4px; height: 4px; background: linear-gradient(45deg, var(--gold), #fff); border-radius: 50%; pointer-events: none; z-index: 10002; box-shadow: 0 0 10px var(--gold); }
+
+/* --- NAVIGATION --- */
+nav { display: flex; justify-content: center; align-items: center; padding: 30px 8%; position: fixed; width: 100%; z-index: 1000; background: linear-gradient(to bottom, rgba(3,3,3,1), rgba(3,3,3,0)); backdrop-filter: blur(10px); }
+.logo { font-family: 'Playfair Display'; font-size: 28px; letter-spacing: 10px; color: var(--gold); font-weight: 800; text-transform: uppercase; }
+
+/* --- HERO --- */
+.hero { height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+#hero-video { position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.3); z-index: 1; }
+.hero-content { position: relative; z-index: 2; text-align: center; pointer-events: none; }
+.big-brand { font-family: 'Playfair Display'; font-size: clamp(60px, 15vw, 180px); letter-spacing: 30px; text-transform: uppercase; background: linear-gradient(to bottom, #fff 40%, var(--gold) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: luxuryEntry 4s ease-out; }
+.hero-tag { font-size: 11px; letter-spacing: 12px; color: var(--gold); text-transform: uppercase; margin-top: 20px; opacity: 0; animation: slideUp 2s ease-out 1.5s forwards; }
+
+/* --- MUSIC BOX --- */
+.music-box { position: fixed; bottom: 40px; left: 40px; z-index: 1001; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 12px 22px; border-radius: 40px; border: 1px solid rgba(212,175,55,0.2); cursor: pointer; }
+.vis-bar { width: 3px; height: 15px; background: var(--gold); border-radius: 5px; animation: pulse 1s infinite alternate; }
+
+/* --- SECTIONS --- */
+section { padding: 140px 10%; opacity: 0; transform: translateY(40px); transition: 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
+section.visible { opacity: 1; transform: translateY(0); }
+.section-title { font-family: 'Playfair Display'; font-size: 45px; color: #fff; font-style: italic; text-align: center; letter-spacing: 2px; }
+.gold-line { width: 40px; height: 1px; background: var(--gold); margin: 20px auto 60px; }
+
+#panorama { height: 70vh; border: 1px solid rgba(212,175,55,0.1); }
+#map { height: 55vh; border: 1px solid rgba(212,175,55,0.1); filter: grayscale(1) invert(1) brightness(0.45); }
+
+/* --- FORM & FOOTER --- */
+.review-form { background: var(--glass); padding: 50px; border: 1px solid rgba(212,175,55,0.1); max-width: 800px; margin: 0 auto; text-align: center; }
+.star-rating { font-size: 28px; margin-bottom: 25px; }
+.star-rating span { cursor: pointer; color: #222; transition: 0.3s; padding: 0 4px; }
+.star-rating span.active { color: var(--gold); }
+input, textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid #333; color: white; padding: 15px; margin-bottom: 30px; font-family: inherit; }
+.btn-submit { background: var(--gold); color: black; border: none; padding: 18px; width: 100%; font-weight: 600; letter-spacing: 4px; cursor: pointer; transition: 0.4s; }
+.btn-submit:hover { background: #fff; transform: translateY(-2px); }
+
+@keyframes luxuryEntry { from { letter-spacing: 10px; opacity: 0; } to { letter-spacing: 30px; opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse { from { height: 5px; } to { height: 20px; } }
+
+footer { padding: 100px 10%; text-align: center; border-top: 1px solid #111; }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-aura"></div>
+
+<div class="music-box" onclick="toggleMusic()">
+  <div class="vis-bar"></div><div class="vis-bar" style="animation-delay:0.2s"></div><div class="vis-bar" style="animation-delay:0.4s"></div>
+  <span style="font-size: 10px; letter-spacing: 2px; color: var(--gold); font-weight: 600;">AMBIENCE</span>
+</div>
+<audio id="luxuryAudio"></audio>
+
+<nav><div class="logo">NEFOURA</div></nav>
+
+<section class="hero" style="opacity:1; transform:none;">
+  <video autoplay loop muted playsinline id="hero-video"><source src="shop_video.mp4" type="video/mp4"></video>
+  <div class="hero-content">
+    <h1 class="big-brand">NEFOURA</h1>
+    <p class="hero-tag">The First Multi-Brand Store in Perinthalmanna</p>
+  </div>
+</section>
+
+<section id="heritage">
+  <h2 class="section-title">The Heritage</h2>
+  <div class="gold-line"></div>
+  <p style="text-align:center; max-width:850px; margin:0 auto; line-height:2.2; color:#bbb; font-size:18px; font-style:italic;">
+    " IN NEFOURA YOU GET BOTH LUXURY DRESS AND NORMAL. KERALAS FIRST MULTI BRAND STORE THERE ARE ORNAMNETS PERFUMES FANCY   footware . THE DESTINATION  OF THE STORE IS AT PERINTHALAMANNA
+  </p>
+</section>
+
+<section id="virtual">
+  <h2 class="section-title">Virtual Atelier</h2>
+  <div class="gold-line"></div>
+  <div id="panorama"></div>
+</section>
+
+<section id="reviews">
+  <h2 class="section-title">Guest Reviews</h2>
+  <div class="gold-line"></div>
+  <form action="https://formspree.io/f/xnjgywez" method="POST" class="review-form">
+    <div class="star-rating" id="starInput">
+      <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+    </div>
+    <input type="hidden" name="Rating" id="starValue" value="0">
+    <input type="text" name="Name" placeholder="NAME" required>
+    <textarea name="Review" placeholder="YOUR EXPERIENCE" rows="4" required></textarea>
+    <button type="submit" class="btn-submit">SUBMIT REVIEW</button>
+  </form>
+</section>
+
+<section id="location">
+  <h2 class="section-title">Our Presence</h2>
+  <div class="gold-line"></div>
+  <div id="map"></div>
+  <p style="text-align:center; margin-top:30px; color:var(--gold); letter-spacing:3px; font-size:12px;">NESMA ARCADE | ABOVE SAFA GOLD | PERINTHALMANNA</p>
+</section>
+
+<footer>
+  <p style="font-family:'Playfair Display'; font-size:26px; color:var(--gold); letter-spacing:2px; font-weight:600;">+91 98765 43210</p>
+  <p style="color:#666; letter-spacing:3px; font-size:14px; margin-top:10px; text-transform:uppercase;">HOCKMINERIZAAN@GMAIL.COM</p>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
+<script>
+// --- LAGGING CURSOR & SPARKLES ---
+const dot = document.getElementById('cursor');
+const circle = document.getElementById('cursor-aura');
+let mouseX = 0, mouseY = 0, circleX = 0, circleY = 0;
+
+document.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  dot.style.left = mouseX + 'px'; dot.style.top = mouseY + 'px';
+});
+
+function animateCursor() {
+  circleX += (mouseX - circleX) * 0.15;
+  circleY += (mouseY - circleY) * 0.15;
+  circle.style.left = circleX + 'px'; circle.style.top = circleY + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+document.addEventListener('click', (e) => {
+  for (let i = 0; i < 8; i++) createSparkle(e.clientX, e.clientY);
+});
+
+function createSparkle(x, y) {
+  const s = document.createElement('div');
+  s.className = 'sparkle';
+  document.body.appendChild(s);
+  const size = Math.random() * 5 + 2;
+  s.style.width = size + 'px'; s.style.height = size + 'px';
+  const destX = x + (Math.random() - 0.5) * 100;
+  const destY = y + (Math.random() - 0.5) * 100;
+  s.animate([
+    { transform: `translate(${x}px, ${y}px) scale(1)`, opacity: 1 },
+    { transform: `translate(${destX}px, ${destY}px) scale(0)`, opacity: 0 }
+  ], { duration: 1000 + Math.random() * 1000, easing: 'ease-out' }).onfinish = () => s.remove();
+}
+
+// --- AMBIENCE ---
+const audio = document.getElementById('luxuryAudio');
+const songs = ["mysong3.mp3.mp3", "mysong5.mp3.mp3", "mysong4.mp3.mp3", "mysong6.mp3.mp3", "mysong1.mp3.mp3"];
+let currentSong = 0, isPlaying = false;
+function playSong(idx) { audio.src = songs[idx]; audio.play().catch(() => {}); }
+function toggleMusic() { 
+  if (!isPlaying) { playSong(currentSong); isPlaying = true; } 
+  else { audio.pause(); isPlaying = false; }
+}
+audio.onended = () => { currentSong = (currentSong + 1) % songs.length; playSong(currentSong); };
+
+// --- MAP (PERINTHALMANNA) ---
+var map = L.map('map').setView([10.9768, 76.2255], 17);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+var goldPin = L.divIcon({ className: 'pin', html: "<div style='background:var(--gold); width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 15px var(--gold);'></div>", iconSize: [14, 14] });
+L.marker([10.9768, 76.2255], {icon: goldPin}).addTo(map).bindPopup("<b style='color:black;'>NEFOURA</b>").openPopup();
+
+pannellum.viewer('panorama', { "type": "equirectangular", "panorama": "360.jpg", "autoLoad": true });
+
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('section').forEach(s => obs.observe(s));
+
+document.querySelectorAll('#starInput span').forEach(s => {
+  s.onclick = function() {
+    let r = this.dataset.v;
+    document.getElementById('starValue').value = r;
+    document.querySelectorAll('#starInput span').forEach((x, i) => x.classList.toggle('active', i < r));
+  }
+});
+</script>
+</body>
+</html>
